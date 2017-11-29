@@ -25,6 +25,7 @@ import org.jetbrains.kotlin.storage.StorageManager;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedList;
 
 public abstract class AbstractClassTypeConstructor extends AbstractTypeConstructor implements TypeConstructor {
     private int hashCode = 0;
@@ -124,17 +125,38 @@ public abstract class AbstractClassTypeConstructor extends AbstractTypeConstruct
 
     @NotNull
     @Override
-    protected Collection<KotlinType> getAdditionalNeighboursInSupertypeGraph() {
+    protected Collection<KotlinType> getAdditionalNeighboursInSupertypeGraph(boolean useCompanions) {
+        DeclarationDescriptor containingDeclaration = getDeclarationDescriptor().getContainingDeclaration();
+
+        if (!(containingDeclaration instanceof ClassDescriptor)) {
+            return Collections.emptyList();
+        }
+
+        Collection<KotlinType> additionalNeighbours = new LinkedList<KotlinType>();
+
         // We suppose that there is an edge from C to A in graph when disconnecting loops in supertypes,
         // because such cyclic declarations should be prohibited (see p.10.2.1 of Kotlin spec)
         // class A : B {
         //   static class C {}
         // }
         // class B : A.C {}
-        DeclarationDescriptor containingDeclaration = getDeclarationDescriptor().getContainingDeclaration();
-        if (containingDeclaration instanceof ClassDescriptor) {
-            return Collections.<KotlinType>singleton(((ClassDescriptor) containingDeclaration).getDefaultType());
+        ClassDescriptor containingClassDescriptor = (ClassDescriptor) containingDeclaration;
+        additionalNeighbours.add(containingClassDescriptor.getDefaultType());
+
+        // Also we add edge from all nesteds to companion object, because such declarations also
+        // lead to loops in scopes due to the fact that we see all nesteds from out companion's
+        // hierarchy:
+        //
+        // class ContainingClass {
+        //   open class Nested {}
+        //   companion object : Nested() {}
+        // }
+        ClassDescriptor companion = containingClassDescriptor.getCompanionObjectDescriptor();
+        if (useCompanions && companion != null) {
+            additionalNeighbours.add(companion.getDefaultType());
         }
-        return Collections.emptyList();
+
+
+        return additionalNeighbours;
     }
 }

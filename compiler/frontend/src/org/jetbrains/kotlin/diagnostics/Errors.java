@@ -262,6 +262,7 @@ public interface Errors {
             DiagnosticFactory0.create(ERROR, VARIANCE_IN_PROJECTION);
 
     DiagnosticFactory0<PsiElement> CYCLIC_INHERITANCE_HIERARCHY = DiagnosticFactory0.create(ERROR);
+    DiagnosticFactory0<PsiElement> CYCLIC_SCOPES = DiagnosticFactory0.create(ERROR);
 
     DiagnosticFactory0<KtSuperTypeEntry> SUPERTYPE_NOT_INITIALIZED = DiagnosticFactory0.create(ERROR);
 
